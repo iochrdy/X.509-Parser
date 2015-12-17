@@ -1,6 +1,7 @@
 import java.io.*;
 import java.security.cert.*;
 
+//This code only works with Pentaho products
 
 public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException, CertificateException, IOException
 {
