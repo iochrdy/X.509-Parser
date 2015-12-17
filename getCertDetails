@@ -1,0 +1,98 @@
+import java.io.*;
+import java.security.cert.*;
+
+
+public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException, CertificateException, IOException
+{
+    Object[] r = getRow();
+ 
+    if (r == null) {
+        setOutputDone();
+		//logRowlevel("ROW is NULL!");
+        return false;
+    }
+ 
+    if (first){
+        first = false;
+    }
+ 
+    r = createOutputRow(r, data.outputRowMeta.size());
+     
+	// lets parse the cert
+	try {
+    	CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+
+		//get the binary data from the step
+		byte b[] = get(Fields.In, "usercertificate").getBinary(r);
+	
+		if (b != null){
+
+			//byte[] bias = null;
+			ByteArrayInputStream bais = new ByteArrayInputStream(b);
+
+			//instantiate the cert object
+			java.security.cert.Certificate c = (X509Certificate)certFactory.generateCertificate(bais);
+			X509Certificate t = (X509Certificate) c;
+
+			//-Begin CertExpDate Capture in order to help account aging
+			String str = t.toString();
+			//logRowlevel("Cert String value is " + str);
+
+			int cti = str.indexOf("To:");
+			//logRowlevel("Cert str index is " + cti);
+
+			String ced = str.substring(cti + 8);
+			//logRowlevel("Cert substr is " + ced);
+
+			String cedReg = "]";
+
+			String[] finalCed = ced.split(cedReg);
+
+			String trimCed = finalCed[0];
+
+			String finalTrimCed = trimCed.trim();
+			//logRowlevel("Cert final substr is " + finalTrimCed);
+	
+			// Set a value in a new output field
+ 			//get(Fields.Out, "sn").setValue(r, uppercase_value);
+			get(Fields.Out, "CertExpDate").setValue(r, finalTrimCed);
+    		// Send the row on to the next step.
+    		putRow(data.outputRowMeta, r);
+			//-End CertExpDate Capture
+
+			// Working -Capture LoginID	
+			String s = t.toString();
+			//logRowlevel("String value is " + s);
+
+			int ti = s.indexOf("RFC822");
+			//logRowlevel("str index is " + ti);
+
+			String lid = s.substring(ti + 12);
+			//logRowlevel("substr is " + lid);
+
+			String reg = "]";
+
+			String[] finalLid = lid.split(reg);
+
+			String trimLid = finalLid[0];
+
+			String finalTrimLid = trimLid.trim();
+
+			//logRowlevel("final substr is " + finalTrimLid);
+	
+			// Set a value in a new output field
+ 			//get(Fields.Out, "sn").setValue(r, uppercase_value);
+			get(Fields.Out, "login").setValue(r, finalTrimLid);
+    		// Send the row on to the next step.
+    		putRow(data.outputRowMeta, r);
+		}
+  	}catch (CertificateException e){
+		  logRowlevel("Error value is " + e);
+	}
+	
+
+ 
+    return true;
+}
+
+  
